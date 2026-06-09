@@ -1,0 +1,43 @@
+.channel-picker-menu {
+  width: 300px;
+  max-height: 280px;
+  overflow: hidden;
+  height: 280px
+}
+
+
+
+.channel-picker-search {
+  padding: 8px;
+  border-bottom: 1px solid var(--nc-panel-border);
+  background-color: var(--nc-bg);
+}
+
+.channel-picker-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--nc-bg);
+  color: var(--nc-text);
+  border: 1px solid var(--nc-panel-border-active);
+  outline: none;
+  padding: 6px 8px;
+  font-size: 0.85em;
+  font-family: var(--font-sans);
+}
+
+.channel-picker-input::placeholder {
+  color: var(--nc-text-dim);
+}
+
+.channel-picker-list {
+  max-height: 270px;
+  overflow-y: auto;
+  padding: 5px 0;
+}
+
+.channel-picker-empty {
+  padding: 10px 15px;
+  color: var(--nc-text-dim);
+  font-family: var(--font-sans);
+  font-size: 0.9em;
+}
