@@ -564,3 +564,45 @@ export async function getMyChannels(userSlug) {
 
   return allChannels;
 }
+
+export async function findOrCreateSystemChannel(userSlug) {
+  const channels = await getMyChannels(userSlug);
+  const existing = channels.find(c => String(c.title || '').trim()    .toLowerCase() === '~system');
+  if (existing) return existing;
+  return createChannel('~system', 'closed');
+}
+
+export async function readSystemConfig(systemChannelId) {
+  const response = await fetchRead(`/channels/${systemChannelId}/contents?per=100`);
+  if (!response.ok) return [];
+  const data = await response.json();
+  const items = normalizeItems(data) || [];
+  const configBlock = items.find(item =>
+    String(item.title || '').trim() === '.config' &&
+    (item.class === 'Text' || item.content_class === 'Text' || item.type === 'Text')
+  );
+  if (!configBlock) return [];
+  try {
+    const parsed = JSON.parse(configBlock.content || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function saveSystemConfig(systemChannelId, ids) {
+  const content = JSON.stringify([...ids]);
+  const response = await fetchRead(`/channels/${systemChannelId}/contents?per=100`);
+  if (response.ok) {
+    const data = await response.json();
+    const items = normalizeItems(data) || [];
+    const configBlock = items.find(item =>
+      String(item.title || '').trim() === '.config' &&
+      (item.class === 'Text' || item.content_class === 'Text' || item.type === 'Text')
+    );
+    if (configBlock) {
+      return updateBlock(configBlock.id, content);
+    }
+  }
+  return createBlock(systemChannelId, content, '.config');
+}

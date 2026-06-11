@@ -9,7 +9,7 @@ import SettingsModal from './components/SettingsModal';
 import CreateChannelModal from './components/CreateChannelModal';
 import SourceSelector from './components/SourceSelector';
 
-import { getCurrentUser, fetcher, getBlock, createBlock, updateBlock, deleteConnection, createConnection, deleteChannel, createChannel, unfollowItem, addItemToChannel, getMyChannels } from './api';
+import { getCurrentUser, fetcher, getBlock, createBlock, updateBlock, deleteConnection, createConnection, deleteChannel, createChannel, unfollowItem, addItemToChannel, getMyChannels, findOrCreateSystemChannel, readSystemConfig, saveSystemConfig } from './api';
 import './index.css';
 import { getItemDisplayName } from './utils/displayName';
 
@@ -65,7 +65,7 @@ function usePanel(userSlug, side, sortMode) {
   };
 
   const { data, error, isLoading, isValidating, size, setSize, mutate: panelMutate } = useSWRInfinite(getKey, fetcher, {
-    keepPreviousData: false,
+    keepPreviousData: true,
     revalidateFirstPage: false,
     revalidateOnFocus: false
   });
@@ -87,7 +87,7 @@ function usePanel(userSlug, side, sortMode) {
   }, [hasData, data, isValidating, isFullyLoaded, lastPage, setSize]);
 
   const rawItems = React.useMemo(() => {
-    if (!isFullyLoaded || !Array.isArray(data)) return [];
+    if (!data || data.length === 0) return [];
 
     const flatItems = data.flat();
     const seen = new Set();
@@ -283,6 +283,10 @@ export default function App() {
   const [myChannels, setMyChannels] = useState([]);
   const [myChannelsLoading, setMyChannelsLoading] = useState(false);
   const [movingIds, setMovingIds] = useState(new Set());
+  const [connectedChannelIds, setConnectedChannelIds] = useState(new Set());
+  const connectedChannelIdsRef = useRef(connectedChannelIds);
+  useEffect(() => { connectedChannelIdsRef.current = connectedChannelIds; }, [connectedChannelIds]);
+  const [systemChannelId, setSystemChannelId] = useState(null);
   const [panelSplit, setPanelSplit] = useState(() => {
     const saved = Number(localStorage.getItem('arena_panel_split'));
     return Number.isFinite(saved) && saved >= 20 && saved <= 80 ? saved : 50;
@@ -409,6 +413,25 @@ export default function App() {
       cancelled = true;
     };
   }, [user?.slug]);
+
+  useEffect(() => {
+    if (!user?.slug || myChannels.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const system = await findOrCreateSystemChannel(user.slug);
+        if (cancelled) return;
+        setSystemChannelId(system.id);
+        const ids = await readSystemConfig(system.id);
+        if (!cancelled && ids.length > 0) {
+          setConnectedChannelIds(new Set(ids));
+        }
+      } catch (e) {
+        console.warn('[SYSTEM CHANNEL]', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.slug, myChannels]);
 
   const left = usePanel(user?.slug, 'left', sortMode);
   const right = usePanel(user?.slug, 'right', sortMode);
@@ -671,6 +694,10 @@ export default function App() {
       if (panel.ids.length > 0) {
         const parentChannelId = panel.ids[panel.ids.length - 1];
         await createConnection(channel.id, 'Channel', parentChannelId);
+        const next = new Set(connectedChannelIdsRef.current);
+        next.add(channel.id);
+        setConnectedChannelIds(next);
+        if (systemChannelId) saveSystemConfig(systemChannelId, next);
       }
 
       panel.mutate(undefined, { revalidateFirstPage: true });
@@ -1034,7 +1061,7 @@ export default function App() {
   return (
     <div className="app">
       <div
-        className={`panels-container ${isResizingPanels ? 'resizing' : ''}`}
+        className={`panels-container ${isResizingPanels ? 'resizing' : ''} ${activePanel === 'left' ? 'active-left' : 'active-right'}`}
         ref={panelsContainerRef}
         style={{
           gridTemplateColumns: `${panelSplit}fr ${100 - panelSplit}fr`,
@@ -1051,7 +1078,9 @@ export default function App() {
             }
           }}
           path={left.path}
-          items={left.items}
+          items={left.slugs.length === 0 && left.sourceType === 'personal'
+            ? left.items.filter(item => !connectedChannelIds.has(item.id))
+            : left.items}
           isLoading={left.isLoading}
           selectedIndex={left.selectedIndex}
           setSelectedIndex={left.setSelectedIndex}
@@ -1127,7 +1156,9 @@ export default function App() {
             }
           }}
           path={right.path}
-          items={right.items}
+          items={right.slugs.length === 0 && right.sourceType === 'personal'
+            ? right.items.filter(item => !connectedChannelIds.has(item.id))
+            : right.items}
           isLoading={right.isLoading}
           selectedIndex={right.selectedIndex}
           setSelectedIndex={right.setSelectedIndex}
@@ -1321,6 +1352,10 @@ export default function App() {
               if (active.ids.length > 0) {
                 const parentId = active.ids[active.ids.length - 1];
                 await createConnection(channel.id, 'Channel', parentId);
+                const next = new Set(connectedChannelIdsRef.current);
+                next.add(channel.id);
+                setConnectedChannelIds(next);
+                if (systemChannelId) saveSystemConfig(systemChannelId, next);
               }
                 active.mutate(undefined, { revalidateFirstPage: true });
                 setTimeout(() => active.mutate(undefined, { revalidateFirstPage: true }), 1200);

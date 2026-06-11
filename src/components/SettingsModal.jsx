@@ -30,7 +30,6 @@ export default function SettingsModal({ sortMode, onSortChange, viewMode, onView
         <div className="modal-body">
           <div className="settings-section">
             <h3>API Token</h3>
-            <p className="settings-help">Your Are.na personal access token. Used for all API requests.</p>
             <div className="settings-token-row">
               <input
                 type="password"
@@ -41,6 +40,9 @@ export default function SettingsModal({ sortMode, onSortChange, viewMode, onView
               />
               <button className="nc-button" onClick={handleApplyToken}>Apply</button>
             </div>
+            <p className="settings-help">
+              <a href="https://www.are.na/developers/personal-access-tokens" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Get your token here</a>
+            </p>
             {tokenStatus === 'ok' && (
               <span className="settings-token-applied">Applied</span>
             )}

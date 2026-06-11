@@ -130,6 +130,11 @@ body, html {
 /* Settings Modal */
 .settings-modal {
   max-width: 450px;
+  max-height: 90vh;
+}
+
+.settings-modal .modal-body {
+  overflow-y: auto;
 }
 
 .settings-section {
@@ -306,7 +311,11 @@ body, html {
   height: 14px;
 }
 .col-name, .item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 10px; }
-.col-size, .item-size { width: 80px; flex-shrink: 0; text-align: right; padding-right: 10px; font-size: 0.9em; }
+.col-size, .item-size { width: 80px; flex-shrink: 0; text-align: right; padding-right: 10px; font-size: 0.9em; white-space: nowrap; }
+.col-chn { width: 40px; flex-shrink: 0; text-align: left; font-size: 0.9em; }
+.item-chn { width: 40px; flex-shrink: 0; text-align: left; font-size: 0.9em; }
+.col-count { width: 60px; flex-shrink: 0; text-align: right; padding-right: 10px; font-size: 0.9em; }
+.item-count { width: 60px; flex-shrink: 0; text-align: right; padding-right: 10px; font-size: 0.9em; }
 .col-date, .item-date { width: 70px; flex-shrink: 0; text-align: right; font-size: 0.9em; opacity: 0.8; }
 
 .panel-item {
@@ -376,14 +385,11 @@ body, html {
 
 .modal-content {
   background-color: var(--nc-bg);
-  /* border: 2px solid var(--nc-panel-border-active); */
-  /* width: 80%;
-  max-width: 800px; */
-  /* max-height: 90vh; */
   display: flex;
   flex-direction: column;
   box-shadow: 10px 10px 0px rgba(0,0,0,0.8);
-  padding: 12px 24px 24px
+  padding: 12px 24px 24px;
+  max-height: 90vh;
 }
 
 .modal-header {
@@ -417,7 +423,6 @@ body, html {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   border-radius: 4px
 }
 
@@ -558,6 +563,13 @@ body, html {
   width: 100%;
   border: none;
   background: #fff;
+  min-height: 0;
+}
+
+.panel-iframe-container {
+  flex: 1;
+  display: flex;
+  position: relative;
   min-height: 0;
 }
 
@@ -776,8 +788,20 @@ body.is-resizing-panels * {
   user-select: none !important;
 }
 
+@media (max-width: 768px) {
+  .panels-container {
+    grid-template-columns: 1fr !important;
+  }
 
-.gallery-grid {
+  .panel-divider {
+    display: none;
+  }
+
+  .panels-container.active-left .panel-shell:last-child,
+  .panels-container.active-right .panel-shell:first-child {
+    display: none;
+  }
+}.gallery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
@@ -979,4 +1003,8 @@ body.is-resizing-panels * {
 
 .gallery-updir .gallery-card {
   min-height: 220px;
+}
+
+.modal-footer {
+    padding: 16px 0 0;
 }

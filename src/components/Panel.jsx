@@ -107,6 +107,13 @@ export default function Panel({
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
 
+  useEffect(() => {
+    if (!iframeSrc) return;
+    const handler = (e) => { if (e.key === 'Escape') { e.preventDefault(); onCloseIframe(); } };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [iframeSrc, onCloseIframe]);
+
   const visibleItems = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
@@ -549,7 +556,7 @@ export default function Panel({
               <div className="panel-text-preview-content">
                 <div
                   className="markdown-body"
-                  dangerouslySetInnerHTML={{ __html: marked(getNoteContent(textPreview) || '*Empty note*') }}
+                  dangerouslySetInnerHTML={{ __html: marked((getNoteContent(textPreview) || '*Empty note*').replace(/^(#+)(?!\s|#)/gm, '$1 ')) }}
                 />
                 <div className="text-preview-meta">
                   {textPreview.user && (
@@ -585,7 +592,8 @@ export default function Panel({
           <div className="panel-columns-header">
             <span className="col-icon"></span>
             <span className="col-name">Name</span>
-            <span className="col-size">Size</span>
+            <span className="col-chn">{'<CHN>'}</span>
+            <span className="col-count"></span>
             <span className="col-date">Created</span>
           </div>
         )}
@@ -595,12 +603,14 @@ export default function Panel({
               <span className="panel-iframe-url">{iframeSrc}</span>
               <button className="panel-iframe-close" onClick={onCloseIframe}>✕ ESC</button>
             </div>
-            <iframe
-              src={iframeSrc}
-              className="panel-iframe"
-              title="preview"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-            />
+            <div className="panel-iframe-container">
+              <iframe
+                src={iframeSrc}
+                className="panel-iframe"
+                title="preview"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              />
+            </div>
           </div>
         )}
         {!iframeSrc && !textPreview && isLoading && <div className="panel-item loading">Loading...</div>}
@@ -626,8 +636,8 @@ export default function Panel({
           >
              <span className="item-icon">{getIcon('Channel')}</span>
              <span className="item-name">..</span>
-             <span className="item-size">UP--DIR</span>
-             <span className="item-date"></span>
+             <span className="item-chn">{'<CHN>'}</span>
+             <span className="item-count"></span>
           </div>
         )}
 
@@ -688,9 +698,12 @@ export default function Panel({
                   );
                 })()}
               </span>
-              <span className="item-size">
-                {(item.class === 'Channel' || item.type === 'Channel') 
-                  ? `<DIR> ${item.length !== undefined ? item.length : item.counts?.contents || 0}` 
+              <span className="item-chn">
+                {(item.class === 'Channel' || item.type === 'Channel') ? '<CHN>' : ''}
+              </span>
+              <span className="item-count">
+                {(item.class === 'Channel' || item.type === 'Channel')
+                  ? (item.length !== undefined ? item.length : item.counts?.contents || 0)
                   : (item.image?.file_size ? `${Math.round(item.image.file_size / 1024)}K` : '')}
               </span>
               <span className="item-date">{formatDate(item.created_at)}</span>
@@ -776,7 +789,7 @@ export default function Panel({
                       {type === 'Image' && (
                         <div className="gallery-card gallery-card-image">
                           {imageUrl ? (
-                            <img src={imageUrl} alt={getItemDisplayName(item)} className="gallery-image gallery-image-masonry" />
+                            <img src={imageUrl} alt={getItemDisplayName(item)} className="gallery-image gallery-image-masonry" loading="lazy" />
                           ) : (
                             <div className="gallery-image gallery-placeholder">{getItemDisplayName(item)}</div>
                           )}
@@ -787,7 +800,7 @@ export default function Panel({
                         <div className="gallery-card gallery-card-link">
                           <div className="gallery-link-preview">
                             {imageUrl ? (
-                              <img src={imageUrl} alt={getItemDisplayName(item)} className="gallery-image gallery-image-masonry" />
+                              <img src={imageUrl} alt={getItemDisplayName(item)} className="gallery-image gallery-image-masonry" loading="lazy" />
                             ) : (
                               <div className="gallery-image gallery-placeholder">{getItemDisplayName(item)}</div>
                             )}
@@ -854,7 +867,7 @@ export default function Panel({
                         <div className="gallery-card gallery-card-channel">
                           <div className="gallery-channel-avatar">
                             {avatarUrl ? (
-                              <img src={avatarUrl} alt={getItemDisplayName(item)} className="gallery-avatar-image" />
+                              <img src={avatarUrl} alt={getItemDisplayName(item)} className="gallery-avatar-image" loading="lazy" />
                             ) : (
                               <span>{getItemDisplayName(item).slice(0, 1).toUpperCase()}</span>
                             )}
